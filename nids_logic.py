@@ -137,3 +137,27 @@ def predict_many(model, columns, df):
         "severity": [CLASS_INFO[c]["severity"] for c in predicted],
         "top_vote_share": shares.max(axis=1).round(2),
     })
+
+
+    # Return the saved results of the one-time evaluation on the official test file.
+def load_test_results():
+    with open(BASE_DIR / "model" / "test_results.json") as f:
+        return json.load(f)
+
+
+    # Importance of each original feature (one-hot columns are added back together).
+def feature_importance(model, columns):
+    encoded_names = model.named_steps["pre"].get_feature_names_out()
+    importances = model.named_steps["model"].feature_importances_
+
+    totals = {}
+    for col in columns:
+        if col in TEXT_COLUMNS:
+            prefix = f"text__{col}_"
+            parts = [imp for name, imp in zip(encoded_names, importances)
+                     if name.startswith(prefix)]
+        else:
+            parts = [imp for name, imp in zip(encoded_names, importances)
+                     if name == f"num__{col}"]
+        totals[col] = float(sum(parts))
+    return pd.Series(totals).sort_values(ascending=False)
