@@ -4,8 +4,8 @@ import pandas as pd
 import pytest
 
 from nids_logic import (
-    CLASS_INFO, explain, load_model, predict_many, predict_one,
-    validate_input, validate_table)
+    CLASS_INFO, explain, feature_importance, load_model, load_test_results,
+    predict_many, predict_one, validate_input, validate_table)
 
 EXAMPLES_PATH = Path(__file__).parent.parent / "data" / "examples.csv"
 
@@ -105,3 +105,15 @@ def test_validate_table_reports_missing_columns(stuff):
     table = examples.drop(columns=["duration"])
     problems = validate_table(table, columns, options)
     assert problems == ["Missing columns: duration"]
+
+def test_feature_importance_covers_all_columns(stuff):
+    model, columns, options, examples = stuff
+    importance = feature_importance(model, columns)
+    assert set(importance.index) == set(columns)
+    assert abs(importance.sum() - 1.0) < 1e-6
+
+
+def test_saved_test_results_match_the_test_file_counts():
+    results = load_test_results()
+    row_sums = [sum(r) for r in results["confusion_matrix"]]
+    assert row_sums == [9711, 7458, 2421, 2754, 200]
