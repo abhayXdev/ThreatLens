@@ -25,9 +25,16 @@ def get_examples():
 model, columns, options = get_model()
 examples = get_examples()
 
+SEVERITY_BANNER = {
+    "None": st.success,
+    "Medium": st.warning,
+    "High": st.error,
+    "Critical": st.error,
+}
 
+
+    # Validate the values, predict, and draw the result on the page.
 def show_result(values, actual_class=None):
-    """Validate the values, predict, and draw the result on the page."""
     problems = validate_input(values, columns, options)
     if problems:
         for p in problems:
@@ -37,12 +44,11 @@ def show_result(values, actual_class=None):
     predicted, shares = predict_one(model, columns, values)
     info = explain(predicted)
 
-    st.subheader(f"Prediction: {predicted}")
-    left, right = st.columns(2)
-    left.metric("Severity", info["severity"])
-    if actual_class is not None:
-        right.metric("Actual class in the dataset", actual_class)
+    banner = SEVERITY_BANNER[info["severity"]]
+    banner(f"Prediction: {predicted}  |  Severity: {info['severity']}")
 
+    if actual_class is not None:
+        st.write(f"Actual class in the dataset: **{actual_class}**")
     st.write(info["meaning"])
     st.write("Suggested action: " + info["action"])
 
@@ -52,7 +58,8 @@ def show_result(values, actual_class=None):
 
     st.write("Tree vote share per class (not a guarantee of confidence):")
     st.bar_chart(pd.Series(shares))
-
+    ordered = pd.Series(shares).sort_values(ascending=False)
+    st.dataframe(ordered.map(lambda v: f"{v:.1%}").rename("Vote share"))
 
 st.title("Thread Lens")
 st.write("Network intrusion detection: classify a network connection as "
