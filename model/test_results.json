@@ -1,0 +1,14 @@
+{
+  "classes": ["Normal", "DOS", "PROBE", "R2L", "U2R"],
+  "confusion_matrix": [
+    [9460, 67, 182, 0, 2],
+    [1314, 6100, 44, 0, 0],
+    [806, 175, 1440, 0, 0],
+    [2694, 0, 2, 57, 1],
+    [193, 0, 3, 2, 2]
+  ],
+  "seen_vs_unseen": {
+    "Seen in training": {"rows": 9083, "correct_rate": 0.755},
+    "Never seen in training": {"rows": 3750, "correct_rate": 0.198}
+  }
+}
