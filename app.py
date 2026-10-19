@@ -1,10 +1,11 @@
+import altair as alt
 import pandas as pd
 import streamlit as st
 from pathlib import Path
 
 from nids_logic import (
-    LIMITATION_NOTICE, TEXT_COLUMNS, explain, load_model, predict_many,
-    predict_one, validate_input, validate_table)
+    LIMITATION_NOTICE, TEXT_COLUMNS, explain, feature_importance, load_model,
+    load_test_results, predict_many, predict_one, validate_input, validate_table)
 
 BASE_DIR = Path(__file__).parent
 
@@ -58,8 +59,9 @@ st.write("Network intrusion detection: classify a network connection as "
          "Normal, DOS, PROBE, R2L or U2R.")
 st.warning(LIMITATION_NOTICE)
 
-tab_examples, tab_own, tab_csv = st.tabs(
-    ["Example connections", "Enter your own values", "Upload a CSV"])
+tab_examples, tab_own, tab_csv, tab_insights = st.tabs(
+    ["Example connections", "Enter your own values", "Upload a CSV",
+     "Model insights"])
 
 # ---------- Tab 1: stored examples ----------
 with tab_examples:
@@ -135,3 +137,77 @@ with tab_csv:
                 st.download_button("Download results", results.to_csv(index=False),
                                    file_name="thread_lens_results.csv",
                                    mime="text/csv")
+
+
+# ---------- Tab 4: model insights ----------
+with tab_insights:
+    results = load_test_results()
+    classes = results["classes"]
+
+    st.subheader("The algorithm: Random Forest")
+    st.write(
+        "Thread Lens uses a Random Forest of 100 decision trees. Each tree is "
+        "trained on a random sample of the training rows and asks a series of "
+        "yes/no questions about the 40 measurements. For a new connection every "
+        "tree gives its answer, the answers are averaged, and the class with the "
+        "highest average wins.")
+    st.write("Accuracy was 99.88% on validation rows cut from the training file, "
+             "but 75.67% on the official test file, which contains attack types "
+             "the model never saw in training.")
+
+    # --- Top 10 features ---
+    st.subheader("Which measurements the model relies on")
+    imp_df = feature_importance(model, columns).head(10).rename("Importance")
+    imp_df = imp_df.reset_index()
+    imp_df.columns = ["Feature", "Importance"]
+    st.altair_chart(
+        alt.Chart(imp_df).mark_bar().encode(
+            x=alt.X("Importance:Q"),
+            y=alt.Y("Feature:N", sort="-x", title=None)))
+    st.caption("Impurity-based importance from the trained forest. It shows what "
+               "the model relied on, not what causes an attack.")
+
+    # --- Confusion matrix heatmap ---
+    st.subheader("Official test file: what the model predicted")
+    st.write("Rows are the real class and columns are the prediction. Colors show "
+             "the share of each real class; the numbers are row counts.")
+    cm = pd.DataFrame(results["confusion_matrix"], index=classes, columns=classes)
+    share = cm.div(cm.sum(axis=1), axis=0)
+    counts = cm.reset_index(names="Actual").melt(
+        id_vars="Actual", var_name="Predicted", value_name="Rows")
+    shares = share.reset_index(names="Actual").melt(
+        id_vars="Actual", var_name="Predicted", value_name="Share")
+    cells = counts.merge(shares, on=["Actual", "Predicted"])
+
+    base = alt.Chart(cells).encode(
+        x=alt.X("Predicted:N", sort=classes),
+        y=alt.Y("Actual:N", sort=classes))
+    heat = base.mark_rect().encode(
+        color=alt.Color("Share:Q", scale=alt.Scale(scheme="blues", domain=[0, 1])))
+    numbers = base.mark_text().encode(
+        text="Rows:Q",
+        color=alt.condition(alt.datum.Share > 0.5,
+                            alt.value("white"), alt.value("black")))
+    st.altair_chart(heat + numbers)
+
+    # --- Recall per class ---
+    st.subheader("Share of each real class the model got right (recall)")
+    recall = pd.DataFrame({
+        "Class": classes,
+        "Recall": [cm.loc[c, c] / cm.loc[c].sum() for c in classes]})
+    st.altair_chart(
+        alt.Chart(recall).mark_bar().encode(
+            x=alt.X("Class:N", sort=classes),
+            y=alt.Y("Recall:Q", scale=alt.Scale(domain=[0, 1]))))
+
+    # --- Seen vs never seen ---
+    st.subheader("Attack names seen vs never seen in training")
+    seen = pd.DataFrame(results["seen_vs_unseen"]).T.reset_index()
+    seen.columns = ["Attack names", "Rows", "Correct"]
+    st.altair_chart(
+        alt.Chart(seen).mark_bar().encode(
+            x=alt.X("Attack names:N", sort=None),
+            y=alt.Y("Correct:Q", scale=alt.Scale(domain=[0, 1]))))
+    st.caption("Seen attacks still fail when they are rare in training: "
+               "guess_passwd (53 training rows) was never classified correctly "
+               "in the test file.")
