@@ -27,7 +27,11 @@ st.markdown(
             radial-gradient(circle at 12% 0%, rgba(91,111,214,0.16), transparent 45%),
             radial-gradient(circle at 92% 8%, rgba(46,125,91,0.14), transparent 40%);
     }
-    .block-container {max-width: 1200px; padding-top: 2rem;}
+    /* Hide default Streamlit header so the custom title is never covered */
+    header[data-testid="stHeader"] {display: none !important;}
+    #MainMenu {display: none !important;}
+    footer {display: none !important;}
+    .block-container {max-width: 1200px; padding-top: 2.5rem; padding-bottom: 2rem;}
  
     /* 3D extruded title */
     .title3d {
