@@ -82,7 +82,9 @@ pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-The model was saved with scikit-learn 1.6.1, so `requirements.txt` pins that version.
+The model was saved with Python 3.12 and scikit-learn 1.6.1. `requirements.txt`
+pins the package versions, and `runtime.txt` pins Python 3.12 for deployment
+platforms that otherwise select a newer interpreter.
 
 Run the tests:
 
