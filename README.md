@@ -1,4 +1,4 @@
-# Thread Lens
+# THREAD LENS
 
 Network intrusion detection on the NSL-KDD dataset. Thread Lens takes the 40 measurements of a network connection and classifies it as **Normal**, **DOS**, **PROBE**, **R2L** or **U2R**, with a short explanation, a severity level and a suggested action. It runs as a Streamlit app.
 
