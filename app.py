@@ -17,7 +17,7 @@ SEVERITY_COLOR = {"None": "#2e7d5b", "Medium": "#b7791f",
  
 st.set_page_config(page_title="Thread Lens", page_icon="🔍", layout="wide")
  
-# ---------------------------------------------------------------- 3D look (CSS)
+# 3D look (CSS)
 st.markdown(
     """
     <style>
