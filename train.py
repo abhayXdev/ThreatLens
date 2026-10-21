@@ -42,7 +42,7 @@ ALL_COLUMNS = [
     "label", "difficulty",
 ]
 
-FEATURE_COLUMNS = [c for c in ALL_COLUMNS if c not in ("label", "difficulty")]
+FEATURE_COLUMNS = [c for c in ALL_COLUMNS if c not in ("label", "difficulty", "num_outbound_cmds")]
 
 # NSL-KDD attack-category mapping
 ATTACK_MAP = {
