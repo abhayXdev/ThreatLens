@@ -1,5 +1,7 @@
 import json
 import pickle
+import subprocess
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -43,16 +45,38 @@ LIMITATION_NOTICE = (
     "project, not a security monitor."
 )
 
-    # Return the trained pipeline, the list of 40 feature names and the dropdown options
+    # Return the trained pipeline, the list of 40 feature names and the dropdown options.
+    # If the saved .pkl files cannot be loaded (e.g. Python version mismatch after a
+    # Streamlit Cloud upgrade), the model is rebuilt from the raw training data on the fly.
 def load_model():
+    try:
+        with open(BASE_DIR / "model" / "model.pkl", "rb") as f:
+            model = pickle.load(f)
+        with open(BASE_DIR / "model" / "columns.pkl", "rb") as f:
+            columns = pickle.load(f)
+        with open(BASE_DIR / "model" / "options.json") as f:
+            options = json.load(f)
+        return model, columns, options
+    except Exception:
+        # Pickle incompatible with current Python - rebuild model from raw data.
+        _rebuild_model()
+        with open(BASE_DIR / "model" / "model.pkl", "rb") as f:
+            model = pickle.load(f)
+        with open(BASE_DIR / "model" / "columns.pkl", "rb") as f:
+            columns = pickle.load(f)
+        with open(BASE_DIR / "model" / "options.json") as f:
+            options = json.load(f)
+        return model, columns, options
 
-    with open(BASE_DIR / "model" / "model.pkl", "rb") as f:
-        model = pickle.load(f)
-    with open(BASE_DIR / "model" / "columns.pkl", "rb") as f:
-        columns = pickle.load(f)
-    with open(BASE_DIR / "model" / "options.json") as f:
-        options = json.load(f)
-    return model, columns, options
+
+def _rebuild_model():
+    """Run train.py in a subprocess to regenerate model artefacts."""
+    train_script = BASE_DIR / "train.py"
+    subprocess.run(
+        [sys.executable, str(train_script)],
+        check=True,
+        cwd=str(BASE_DIR),
+    )
 
     # Return a list of problems. An empty list means the input is fine
 def validate_input(values, columns, options):
